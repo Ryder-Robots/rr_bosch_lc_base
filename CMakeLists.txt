@@ -14,6 +14,38 @@ find_package(nav2_util REQUIRED)
 find_package(rr_bno055 REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
+add_library(${PROJECT_NAME} SHARED
+  src/rr_bosch_common_sensor.cpp
+  src/rr_bosch_factory.cpp
+  src/rr_bosch_imu_node.cpp
+)
+
+target_include_directories(${PROJECT_NAME} PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+
+target_link_libraries(${PROJECT_NAME} PUBLIC
+  ${sensor_msgs_TARGETS}
+  nav2_util::nav2_util_core
+  rclcpp::rclcpp
+  rclcpp_components::component
+  rclcpp_components::component_manager
+  rclcpp_lifecycle::rclcpp_lifecycle
+  sensor_msgs::sensor_msgs_library
+  rr::rr_bno055
+)
+
+install(TARGETS ${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+install(DIRECTORY include/
+  DESTINATION include
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

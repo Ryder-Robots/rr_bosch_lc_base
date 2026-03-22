@@ -17,10 +17,13 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
-
 #pragma once
-
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <string>
 #include <vector>
+#include "rclcpp/rclcpp.hpp"
 #include "rr_bosch_lc_base/rr_bosch_common_sensor.hpp"
 
 namespace rr_bosch_lc
@@ -30,7 +33,13 @@ class RrBoschFactory
 public:
   RrBoschFactory() = default;
   ~RrBoschFactory() = default;
-  std::vector<std::shared_ptr<RrBoschCommonSensor>> get_nodes(const std::vector<std::string>& node_names,
-                                                              const std::string& ns);
+
+  std::vector<std::shared_ptr<RrBoschCommonSensor>> get_nodes(
+    const std::vector<std::string> & node_names,
+    const std::string & ns);
+
+private:
+  static const std::vector<std::string> & known_names();
 };
+
 }  // namespace rr_bosch_lc

@@ -20,9 +20,12 @@
 
 #pragma once
 
+#include <vector>
+#include <string>
 #include <memory>
 #include "nav2_util/lifecycle_node.hpp"
 #include "rr_bno055/hardware_transport.hpp"
+#include "rr_bosch_lc_base/rr_bosch_common_sensor.hpp"
 
 namespace rr_bosch_lc
 {
@@ -51,10 +54,7 @@ public:
   CallbackReturn on_shutdown(const State& state) override;
 
 private:
-  // TODO:
-  // factory class goes here
-  // nodes array as vector goes here.
-
+  std::vector<std::shared_ptr<RrBoschCommonSensor>> nodes_;
   std::shared_ptr<rr_bno055::HardwareTransport> device_trns_;
 };
-}  // namespace rr_bosch_lc_base
+}  // namespace rr_bosch_lc

@@ -18,31 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#pragma once
+#include "rr_bosch_lc_base/rr_bosch_common_sensor.hpp"
 
-#include <string>
-#include <memory>
-#include "nav2_util/lifecycle_node.hpp"
-#include "rr_bno055/hardware_transport.hpp"
+using namespace rr_bosch_lc;
 
-namespace rr_bosch_lc
+void RrBoschCommonSensor::set_transport(std::shared_ptr<rr_bno055::HardwareTransport> device_trns)
 {
-class RrBoschCommonSensor : public nav2_util::LifecycleNode
-{
-protected:
-  using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
-  using State = rclcpp_lifecycle::State;
-
-  std::shared_ptr<rr_bno055::HardwareTransport> device_trns_;
-
-public:
-  explicit RrBoschCommonSensor(const std::string& node_name, const std::string& ns, const rclcpp::NodeOptions& options)
-    : nav2_util::LifecycleNode(node_name, ns, options)
-  {
-  }
-
-  virtual ~RrBoschCommonSensor() = default;
-
-  void set_transport(std::shared_ptr<rr_bno055::HardwareTransport> device_trns);
-};
-}  // namespace rr_bosch_lc
+    device_trns_ = device_trns;
+}
