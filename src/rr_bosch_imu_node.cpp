@@ -26,10 +26,20 @@ using State = rclcpp_lifecycle::State;
 
 CallbackReturn RrBoschImuNode::on_configure(const State& state)
 {
+  (void) state;
   RCLCPP_INFO(this->get_logger(), "configuring %s", this->get_name());
+
+  frame_id_ = get_parameter("frame_id").as_string();
+  publish_frequency_ = get_parameter("publish_frequency").as_double();
+  if (publish_frequency_ <= 0.0)
+  {
+    RCLCPP_ERROR(get_logger(), "%s: configure: publish_frequency must be > 0", get_name());
+    return CallbackReturn::FAILURE;
+  }
+
   if (!device_trns_)
   {
-    RCLCPP_ERROR(get_logger(), "RrBoschImuNode: configure: transport driver needs to be set before it can be created");
+    RCLCPP_ERROR(get_logger(), "%s: configure: transport driver needs to be set before it can be created", get_name());
     return CallbackReturn::FAILURE;
   }
 
@@ -72,6 +82,8 @@ CallbackReturn RrBoschImuNode::on_configure(const State& state)
 // run first — that assumption only holds under managed lifecycle.
 CallbackReturn RrBoschImuNode::on_activate(const State& state)
 {
+  (void) state;
+  
   RCLCPP_INFO(this->get_logger(), "activating %s", this->get_name());
   if (!conf_)
   {
@@ -134,7 +146,8 @@ CallbackReturn RrBoschImuNode::on_activate(const State& state)
   {
     auto publish_callback = std::bind(&RrBoschImuNode::publish_callback_, this);
     imu_pub_ = create_publisher<sensor_msgs::msg::Imu>(get_parameter("imu_topic").as_string(), 10);
-    publish_timer_ = create_wall_timer(std::chrono::milliseconds(250), publish_callback);
+    auto interval_ms = static_cast<int>(1000.0 / publish_frequency_);
+    publish_timer_ = create_wall_timer(std::chrono::milliseconds(interval_ms), publish_callback);
     imu_pub_->on_activate();
   }
   catch (const rclcpp::exceptions::RCLError& e)
@@ -204,4 +217,68 @@ void RrBoschImuNode::publish_callback_()
   // should be populated here before publishing.
 
   imu_pub_->publish(msg);
+}
+
+CallbackReturn RrBoschImuNode::on_deactivate(const rclcpp_lifecycle::State& state)
+{
+  (void)state;
+
+  RCLCPP_INFO(this->get_logger(), "deactivating %s", this->get_name());
+
+  if (publish_timer_ && !publish_timer_->is_canceled())
+  {
+    publish_timer_->cancel();
+  }
+  publish_timer_.reset();
+
+  if (imu_pub_)
+  {
+    imu_pub_->on_deactivate();
+  }
+
+  device_.deinitialize();
+
+  consecutive_failures_ = 0;
+
+  return CallbackReturn::SUCCESS;
+}
+
+// on_shutdown may be called from any lifecycle state — including unconfigured and
+// inactive. Every operation here must be safe regardless of what has previously run.
+// device_.deinitialize() is idempotent; shared_ptr resets on null pointers are no-ops.
+CallbackReturn RrBoschImuNode::on_shutdown(const rclcpp_lifecycle::State& state)
+{
+  (void)state;
+
+  RCLCPP_INFO(this->get_logger(), "shutting down %s", this->get_name());
+
+  if (publish_timer_ && !publish_timer_->is_canceled())
+  {
+    publish_timer_->cancel();
+  }
+  publish_timer_.reset();
+
+  if (imu_pub_ && imu_pub_->is_activated())
+  {
+    imu_pub_->on_deactivate();
+  }
+  imu_pub_.reset();
+
+  device_.deinitialize();
+  conf_.reset();
+
+  return CallbackReturn::SUCCESS;
+}
+
+CallbackReturn RrBoschImuNode::on_cleanup(const rclcpp_lifecycle::State& state)
+{
+  (void)state;
+
+  RCLCPP_INFO(this->get_logger(), "cleaning up %s", this->get_name());
+
+  conf_.reset();
+  imu_pub_.reset();
+  publish_timer_.reset();
+
+  return CallbackReturn::SUCCESS;
 }
