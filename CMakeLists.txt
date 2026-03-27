@@ -48,6 +48,16 @@ install(DIRECTORY include/
 
 rclcpp_components_register_nodes(${PROJECT_NAME} "rr_bosch_lc::RrBoschImuNode")
 
+add_executable(rr_bosch_sensor_main src/main.cpp)
+
+target_link_libraries(rr_bosch_sensor_main PRIVATE
+  ${PROJECT_NAME}
+)
+
+install(TARGETS rr_bosch_sensor_main
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
