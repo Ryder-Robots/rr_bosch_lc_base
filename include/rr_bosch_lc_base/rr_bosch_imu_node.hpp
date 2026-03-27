@@ -25,6 +25,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/imu.hpp"
 #include "rr_bosch_lc_base/rr_bosch_common_sensor.hpp"
+#include "rclcpp_components/register_node_macro.hpp"
 #include <thread>
 #include <chrono>
 #include <functional>
@@ -39,6 +40,11 @@ protected:
   using State = RrBoschCommonSensor::State;
 
 public:
+  explicit RrBoschImuNode(const rclcpp::NodeOptions& options)
+    : RrBoschImuNode("rr_bosch_imu_node", "", options)
+  {
+  }
+
   explicit RrBoschImuNode(const std::string& node_name, const std::string& ns, const rclcpp::NodeOptions& options)
     : RrBoschCommonSensor(node_name, ns, options)
   {

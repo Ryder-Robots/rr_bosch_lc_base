@@ -46,6 +46,8 @@ install(DIRECTORY include/
   DESTINATION include
 )
 
+rclcpp_components_register_nodes(${PROJECT_NAME} "rr_bosch_lc::RrBoschImuNode")
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights

@@ -282,3 +282,5 @@ CallbackReturn RrBoschImuNode::on_cleanup(const rclcpp_lifecycle::State& state)
 
   return CallbackReturn::SUCCESS;
 }
+
+RCLCPP_COMPONENTS_REGISTER_NODE(rr_bosch_lc::RrBoschImuNode)
