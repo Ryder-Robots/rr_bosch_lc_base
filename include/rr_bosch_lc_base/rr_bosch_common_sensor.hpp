@@ -36,8 +36,10 @@ protected:
   std::shared_ptr<rr_bno055::HardwareTransport> device_trns_;
 
 public:
-  explicit RrBoschCommonSensor(const std::string& node_name, const std::string& ns, const rclcpp::NodeOptions& options)
-    : nav2_util::LifecycleNode(node_name, ns, options)
+  explicit RrBoschCommonSensor(
+    const std::string & node_name, const std::string & ns,
+    const rclcpp::NodeOptions & options)
+  : nav2_util::LifecycleNode(node_name, ns, options)
   {
   }
 

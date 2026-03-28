@@ -37,10 +37,10 @@ struct Options
   uint8_t address = 0x28;
   rr_bno055::TransportType type = rr_bno055::TransportType::I2C;
   std::string ns = "sensors";
-  std::vector<std::string> node_names{ "rr_bosch_imu_node" };
+  std::vector<std::string> node_names{"rr_bosch_imu_node"};
 };
 
-void print_usage(const char* prog)
+void print_usage(const char * prog)
 {
   std::cout << "Usage: " << prog << " [OPTIONS]\n"
             << "\n"
@@ -53,47 +53,33 @@ void print_usage(const char* prog)
             << "  --help           Show this message\n";
 }
 
-Options parse_args(int argc, char* argv[])
+Options parse_args(int argc, char * argv[])
 {
   Options opts;
-  for (int i = 1; i < argc; ++i)
-  {
+  for (int i = 1; i < argc; ++i) {
     const std::string arg = argv[i];
-    if (arg == "--help")
-    {
+    if (arg == "--help") {
       print_usage(argv[0]);
       std::exit(0);
-    }
-    else if (arg == "--device" && i + 1 < argc)
-    {
+    } else if (arg == "--device" && i + 1 < argc) {
       opts.device = argv[++i];
-    }
-    else if (arg == "--uart")
-    {
+    } else if (arg == "--uart") {
       opts.type = rr_bno055::TransportType::UART;
-      if (opts.device == "/dev/i2c-1")
-      {
+      if (opts.device == "/dev/i2c-1") {
         opts.device = "/dev/ttyAMA0";
       }
-    }
-    else if (arg == "--address" && i + 1 < argc)
-    {
+    } else if (arg == "--address" && i + 1 < argc) {
       opts.address = static_cast<uint8_t>(std::stoul(argv[++i], nullptr, 16));
-    }
-    else if (arg == "--ns" && i + 1 < argc)
-    {
+    } else if (arg == "--ns" && i + 1 < argc) {
       opts.ns = argv[++i];
-    }
-    else if (arg == "--nodename" && i + 1 < argc)
-    {
+    } else if (arg == "--nodename" && i + 1 < argc) {
       std::string node = argv[++i];
-      if (std::find(opts.node_names.begin(), opts.node_names.end(), node) == opts.node_names.end())
+      if (std::find(opts.node_names.begin(), opts.node_names.end(),
+        node) == opts.node_names.end())
       {
         opts.node_names.push_back(node);
       }
-    }
-    else
-    {
+    } else {
       std::cerr << "Unknown option: " << arg << '\n';
       print_usage(argv[0]);
       std::exit(1);
@@ -103,7 +89,7 @@ Options parse_args(int argc, char* argv[])
   return opts;
 }
 
-int main(int argc, char* argv[])
+int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
   const Options opts = parse_args(argc, argv);
@@ -116,20 +102,20 @@ int main(int argc, char* argv[])
 
   rr_bno055::TransportFactory tfact;
 
-  std::shared_ptr<rr_bno055::HardwareTransport> device_trns = tfact.get_or_create_transport(tns_conf);
+  std::shared_ptr<rr_bno055::HardwareTransport> device_trns =
+    tfact.get_or_create_transport(tns_conf);
 
   RrBoschFactory fact;
-  std::vector<std::shared_ptr<RrBoschCommonSensor>> nodes = fact.get_nodes(opts.node_names, opts.ns);
-  if (nodes.empty())
-  {
+  std::vector<std::shared_ptr<RrBoschCommonSensor>> nodes = fact.get_nodes(opts.node_names,
+    opts.ns);
+  if (nodes.empty()) {
     RCLCPP_ERROR(rclcpp::get_logger("main"), "could not find any matching nodes");
     return 1;
   }
 
   auto executor = std::make_shared<rclcpp::executors::MultiThreadedExecutor>();
 
-  for (auto node : nodes)
-  {
+  for (auto node : nodes) {
     node->set_transport(device_trns);
     executor->add_node(node->get_node_base_interface());
   }

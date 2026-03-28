@@ -36,22 +36,24 @@ protected:
   using State = rclcpp_lifecycle::State;
 
 public:
-  explicit RrBoschLcBase(const std::string& node_name, const std::string& ns, const rclcpp::NodeOptions& options)
-    : nav2_util::LifecycleNode(node_name, ns, options)
+  explicit RrBoschLcBase(
+    const std::string & node_name, const std::string & ns,
+    const rclcpp::NodeOptions & options)
+  : nav2_util::LifecycleNode(node_name, ns, options)
   {
   }
 
   virtual ~RrBoschLcBase() = default;
 
-  CallbackReturn on_configure(const State& state) override;
+  CallbackReturn on_configure(const State & state) override;
 
-  CallbackReturn on_activate(const State& state) override;
+  CallbackReturn on_activate(const State & state) override;
 
-  CallbackReturn on_deactivate(const State& state) override;
+  CallbackReturn on_deactivate(const State & state) override;
 
-  CallbackReturn on_cleanup(const State& state) override;
+  CallbackReturn on_cleanup(const State & state) override;
 
-  CallbackReturn on_shutdown(const State& state) override;
+  CallbackReturn on_shutdown(const State & state) override;
 
 private:
   std::vector<std::shared_ptr<RrBoschCommonSensor>> nodes_;

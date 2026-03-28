@@ -24,5 +24,5 @@ using namespace rr_bosch_lc;
 
 void RrBoschCommonSensor::set_transport(std::shared_ptr<rr_bno055::HardwareTransport> device_trns)
 {
-    device_trns_ = device_trns;
+  device_trns_ = device_trns;
 }
