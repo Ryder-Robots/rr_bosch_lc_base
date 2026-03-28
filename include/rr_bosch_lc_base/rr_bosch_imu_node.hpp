@@ -77,7 +77,7 @@ public:
   CallbackReturn on_cleanup(const State & state) override;
   CallbackReturn on_shutdown(const State & state) override;
 
-  static constexpr int MAX_POLLS = 180;  // 90 seconds at 500 ms/poll
+  static constexpr int MAX_POLLS = 360;  // 180 seconds at 500 ms/poll
   static constexpr int POLL_INTERVAL_MS = 500;
   static constexpr int MAX_CONSECUTIVE_FAILURES = 3;
 
