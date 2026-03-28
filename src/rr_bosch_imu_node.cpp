@@ -24,42 +24,48 @@ using namespace rr_bosch_lc;
 using CallbackReturn = rclcpp_lifecycle::node_interfaces::LifecycleNodeInterface::CallbackReturn;
 using State = rclcpp_lifecycle::State;
 
-CallbackReturn RrBoschImuNode::on_configure(const State & state)
+CallbackReturn RrBoschImuNode::on_configure(const State& state)
 {
-  (void) state;
+  (void)state;
   RCLCPP_INFO(this->get_logger(), "configuring %s", this->get_name());
 
   frame_id_ = get_parameter("frame_id").as_string();
   publish_frequency_ = get_parameter("publish_frequency").as_double();
-  if (publish_frequency_ <= 0.0) {
+  if (publish_frequency_ <= 0.0)
+  {
     RCLCPP_ERROR(get_logger(), "%s: configure: publish_frequency must be > 0", get_name());
     return CallbackReturn::FAILURE;
   }
 
-  if (!device_trns_) {
-    RCLCPP_ERROR(get_logger(),
-      "%s: configure: transport driver needs to be set before it can be created", get_name());
+  if (!device_trns_)
+  {
+    RCLCPP_ERROR(get_logger(), "%s: configure: transport driver needs to be set before it can be created", get_name());
     return CallbackReturn::FAILURE;
   }
+
+  requires_calibration_ = get_parameter("requires_calibration").as_bool();
 
   auto protocol = get_parameter("transport_protocol").as_string();
 
   rr_bno055::RrBNO055Config::Builder b{};
   b.with_device(get_parameter("device").as_string());
-  b.with_axis_remap(static_cast<rr_bno055::RrBno055AxisRemap>(get_parameter(
-    "axis_remap").as_int()));
-  b.with_axis_sign_xyz({static_cast<rr_bno055::RrBno055AxisSign>(get_parameter(
-      "axis_sign_x").as_int()),
-      static_cast<rr_bno055::RrBno055AxisSign>(get_parameter("axis_sign_y").as_int()),
-      static_cast<rr_bno055::RrBno055AxisSign>(get_parameter("axis_sign_z").as_int())});
+  b.with_axis_remap(static_cast<rr_bno055::RrBno055AxisRemap>(get_parameter("axis_remap").as_int()));
+  b.with_axis_sign_xyz({ static_cast<rr_bno055::RrBno055AxisSign>(get_parameter("axis_sign_x").as_int()),
+                         static_cast<rr_bno055::RrBno055AxisSign>(get_parameter("axis_sign_y").as_int()),
+                         static_cast<rr_bno055::RrBno055AxisSign>(get_parameter("axis_sign_z").as_int()) });
 
-  if (protocol == "i2c") {
+  if (protocol == "i2c")
+  {
     // read i2c_address, build config with address
     auto address = static_cast<uint8_t>(get_parameter("i2c_address").as_int());
     b.with_address(address);
-  } else if (protocol == "uart") {
+  }
+  else if (protocol == "uart")
+  {
     // UART doesn't need an address — build config differently
-  } else {
+  }
+  else
+  {
     RCLCPP_ERROR(get_logger(), "unknown transport_protocol '%s'", protocol.c_str());
     return CallbackReturn::FAILURE;
   }
@@ -76,27 +82,30 @@ CallbackReturn RrBoschImuNode::on_configure(const State & state)
 // In that context on_activate is the only guard that exists. Do not remove
 // the check from on_activate on the assumption that configure has always
 // run first — that assumption only holds under managed lifecycle.
-CallbackReturn RrBoschImuNode::on_activate(const State & state)
+CallbackReturn RrBoschImuNode::on_activate(const State& state)
 {
-  (void) state;
+  (void)state;
 
   RCLCPP_INFO(this->get_logger(), "activating %s", this->get_name());
-  if (!conf_) {
+  if (!conf_)
+  {
     RCLCPP_ERROR(get_logger(), "RrBoschImuNode: activate: configuration is null");
     return CallbackReturn::FAILURE;
   }
-  if (!device_trns_) {
-    RCLCPP_ERROR(get_logger(),
-      "RrBoschImuNode: activate: driver needs to be set before it can be created");
+  if (!device_trns_)
+  {
+    RCLCPP_ERROR(get_logger(), "RrBoschImuNode: activate: driver needs to be set before it can be created");
     return CallbackReturn::FAILURE;
   }
 
-  if (!device_.initialize(conf_, device_trns_)) {
+  if (!device_.initialize(conf_, device_trns_))
+  {
     RCLCPP_ERROR(get_logger(), "RrBoschImuNode: activate: could not initilize bno055");
     return CallbackReturn::FAILURE;
   }
 
-  if (!device_.set_op_mode(rr_bno055::RRBNO055_OPERATION_MODE_NDOF)) {
+  if (!device_.set_op_mode(rr_bno055::RRBNO055_OPERATION_MODE_NDOF))
+  {
     RCLCPP_ERROR(get_logger(), "%s: activate: failed to set NDOF operation mode", get_name());
     return CallbackReturn::FAILURE;
   }
@@ -104,43 +113,55 @@ CallbackReturn RrBoschImuNode::on_activate(const State & state)
   RCLCPP_INFO(this->get_logger(), "%s: activate: calibrating", this->get_name());
   uint8_t calib_status;
   int polls = 0;
-  while (!device_.is_fully_calibrated(calib_status)) {
-    if (++polls > MAX_POLLS) {
-      RCLCPP_ERROR(get_logger(), "%s: activate: calibration timed out after %d s (status=0x%02x)",
-        get_name(),
-        (MAX_POLLS * POLL_INTERVAL_MS) / 1000, calib_status);
-      return CallbackReturn::FAILURE;
-    }
-    // Log which sensors are still pending
-    if (calib_status & rr_bno055::SYS_NOT_CALIBRATED) {
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "%s: waiting on system calibration",
-        get_name());
-    }
-    if (calib_status & rr_bno055::GYRO_NOT_CALIBRATED) {
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
-        "%s: waiting on gyro — keep sensor still", get_name());
-    }
-    if (calib_status & rr_bno055::ACCEL_NOT_CALIBRATED) {
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
-        "%s: waiting on accel — place in 6 static positions",
-                           get_name());
-    }
-    if (calib_status & rr_bno055::MAG_NOT_CALIBRATED) {
-      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
-        "%s: waiting on mag — move sensor in figure-8",
-                           get_name());
-    }
+  if (requires_calibration_)
+  {
+    while (!device_.is_fully_calibrated(calib_status))
+    {
+      if (++polls > MAX_POLLS)
+      {
+        RCLCPP_ERROR(get_logger(), "%s: activate: calibration timed out after %d s (status=0x%02x)", get_name(),
+                     (MAX_POLLS * POLL_INTERVAL_MS) / 1000, calib_status);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(POLL_INTERVAL_MS));
+        return CallbackReturn::FAILURE;
+      }
+      // Log which sensors are still pending
+      if (calib_status & rr_bno055::SYS_NOT_CALIBRATED)
+      {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "%s: waiting on system calibration", get_name());
+      }
+      if (calib_status & rr_bno055::GYRO_NOT_CALIBRATED)
+      {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "%s: waiting on gyro — keep sensor still", get_name());
+      }
+      if (calib_status & rr_bno055::ACCEL_NOT_CALIBRATED)
+      {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "%s: waiting on accel — place in 6 static positions",
+                             get_name());
+      }
+      if (calib_status & rr_bno055::MAG_NOT_CALIBRATED)
+      {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "%s: waiting on mag — move sensor in figure-8",
+                             get_name());
+      }
+
+      std::this_thread::sleep_for(std::chrono::milliseconds(POLL_INTERVAL_MS));
+    }
+  }
+  else
+  {
+    RCLCPP_WARN(get_logger(), "%s: activate: not checking calibration", get_name());
   }
   // set up publisher.
-  try {
+  try
+  {
     auto publish_callback = std::bind(&RrBoschImuNode::publish_callback_, this);
     imu_pub_ = create_publisher<sensor_msgs::msg::Imu>(get_parameter("imu_topic").as_string(), 10);
     auto interval_ms = static_cast<int>(1000.0 / publish_frequency_);
     publish_timer_ = create_wall_timer(std::chrono::milliseconds(interval_ms), publish_callback);
     imu_pub_->on_activate();
-  } catch (const rclcpp::exceptions::RCLError & e) {
+  }
+  catch (const rclcpp::exceptions::RCLError& e)
+  {
     // not worried if the device is not deinitlized, we just want to try
     device_.deinitialize();
     RCLCPP_ERROR(get_logger(), "%s: failed to create IMU publisher: %s", get_name(), e.what());
@@ -156,20 +177,22 @@ void RrBoschImuNode::publish_callback_()
   bno055_linear_accel_t accel{};
 
   bool read_ok =
-    device_.read_quaternion(quat) && device_.read_angular_velocity(gyro) &&
-    device_.read_linear_acceleration(accel);
+      device_.read_quaternion(quat) && device_.read_angular_velocity(gyro) && device_.read_linear_acceleration(accel);
 
-  if (!read_ok) {
-    if (++consecutive_failures_ >= MAX_CONSECUTIVE_FAILURES) {
+  if (!read_ok)
+  {
+    if (++consecutive_failures_ >= MAX_CONSECUTIVE_FAILURES)
+    {
       RCLCPP_ERROR(get_logger(),
                    "%s: publish_callback_: device unavailable after %d consecutive failures — "
                    "cancelling publisher. Node must be restarted to recover.",
                    get_name(), consecutive_failures_);
       publish_timer_->cancel();
-    } else {
+    }
+    else
+    {
       RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
-                           "%s: publish_callback_: read failure %d of %d before shutdown",
-        get_name(),
+                           "%s: publish_callback_: read failure %d of %d before shutdown", get_name(),
                            consecutive_failures_, MAX_CONSECUTIVE_FAILURES);
     }
     return;
@@ -206,18 +229,20 @@ void RrBoschImuNode::publish_callback_()
   imu_pub_->publish(msg);
 }
 
-CallbackReturn RrBoschImuNode::on_deactivate(const rclcpp_lifecycle::State & state)
+CallbackReturn RrBoschImuNode::on_deactivate(const rclcpp_lifecycle::State& state)
 {
   (void)state;
 
   RCLCPP_INFO(this->get_logger(), "deactivating %s", this->get_name());
 
-  if (publish_timer_ && !publish_timer_->is_canceled()) {
+  if (publish_timer_ && !publish_timer_->is_canceled())
+  {
     publish_timer_->cancel();
   }
   publish_timer_.reset();
 
-  if (imu_pub_) {
+  if (imu_pub_)
+  {
     imu_pub_->on_deactivate();
   }
 
@@ -231,18 +256,20 @@ CallbackReturn RrBoschImuNode::on_deactivate(const rclcpp_lifecycle::State & sta
 // on_shutdown may be called from any lifecycle state — including unconfigured and
 // inactive. Every operation here must be safe regardless of what has previously run.
 // device_.deinitialize() is idempotent; shared_ptr resets on null pointers are no-ops.
-CallbackReturn RrBoschImuNode::on_shutdown(const rclcpp_lifecycle::State & state)
+CallbackReturn RrBoschImuNode::on_shutdown(const rclcpp_lifecycle::State& state)
 {
   (void)state;
 
   RCLCPP_INFO(this->get_logger(), "shutting down %s", this->get_name());
 
-  if (publish_timer_ && !publish_timer_->is_canceled()) {
+  if (publish_timer_ && !publish_timer_->is_canceled())
+  {
     publish_timer_->cancel();
   }
   publish_timer_.reset();
 
-  if (imu_pub_ && imu_pub_->is_activated()) {
+  if (imu_pub_ && imu_pub_->is_activated())
+  {
     imu_pub_->on_deactivate();
   }
   imu_pub_.reset();
@@ -253,7 +280,7 @@ CallbackReturn RrBoschImuNode::on_shutdown(const rclcpp_lifecycle::State & state
   return CallbackReturn::SUCCESS;
 }
 
-CallbackReturn RrBoschImuNode::on_cleanup(const rclcpp_lifecycle::State & state)
+CallbackReturn RrBoschImuNode::on_cleanup(const rclcpp_lifecycle::State& state)
 {
   (void)state;
 

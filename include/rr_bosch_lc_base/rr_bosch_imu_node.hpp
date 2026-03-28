@@ -40,15 +40,12 @@ protected:
   using State = RrBoschCommonSensor::State;
 
 public:
-  explicit RrBoschImuNode(const rclcpp::NodeOptions & options)
-  : RrBoschImuNode("rr_bosch_imu_node", "", options)
+  explicit RrBoschImuNode(const rclcpp::NodeOptions& options) : RrBoschImuNode("rr_bosch_imu_node", "", options)
   {
   }
 
-  explicit RrBoschImuNode(
-    const std::string & node_name, const std::string & ns,
-    const rclcpp::NodeOptions & options)
-  : RrBoschCommonSensor(node_name, ns, options)
+  explicit RrBoschImuNode(const std::string& node_name, const std::string& ns, const rclcpp::NodeOptions& options)
+    : RrBoschCommonSensor(node_name, ns, options)
   {
     // publisher
     declare_parameter("frame_id", "imu_link");
@@ -67,15 +64,16 @@ public:
     declare_parameter("axis_sign_x", static_cast<int>(rr_bno055::RRBNO055_REMAP_AXIS_NEGATIVE));
     declare_parameter("axis_sign_y", static_cast<int>(rr_bno055::RRBNO055_REMAP_AXIS_POSITIVE));
     declare_parameter("axis_sign_z", static_cast<int>(rr_bno055::RRBNO055_REMAP_AXIS_NEGATIVE));
+    declare_parameter("requires_calibration", true);
   }
 
   virtual ~RrBoschImuNode() = default;
 
-  CallbackReturn on_configure(const State & state) override;
-  CallbackReturn on_activate(const State & state) override;
-  CallbackReturn on_deactivate(const State & state) override;
-  CallbackReturn on_cleanup(const State & state) override;
-  CallbackReturn on_shutdown(const State & state) override;
+  CallbackReturn on_configure(const State& state) override;
+  CallbackReturn on_activate(const State& state) override;
+  CallbackReturn on_deactivate(const State& state) override;
+  CallbackReturn on_cleanup(const State& state) override;
+  CallbackReturn on_shutdown(const State& state) override;
 
   static constexpr int MAX_POLLS = 360;  // 180 seconds at 500 ms/poll
   static constexpr int POLL_INTERVAL_MS = 500;
@@ -92,6 +90,7 @@ private:
 
   void publish_callback_();
   int consecutive_failures_ = 0;
+  bool requires_calibration_ = true;
 };
 
 }  // namespace rr_bosch_lc

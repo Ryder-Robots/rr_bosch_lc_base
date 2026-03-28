@@ -49,7 +49,7 @@ void print_usage(const char * prog)
             << "  --address ADDR   I2C hex address 0x28|0x29 (default: 0x28)\n"
             << "  --uart           Use UART transport instead of I2C\n"
             << "  --ns NAMESPACE   Namespace to use\n"
-            << "  --nodename NODE  Repeatable arugment, need at least one per node\n"
+            << "  --nodename NODE  Repeatable argument, need at least one per node\n"
             << "  --help           Show this message\n";
 }
 
@@ -79,6 +79,8 @@ Options parse_args(int argc, char * argv[])
       {
         opts.node_names.push_back(node);
       }
+    } else if (arg == "--ros-args") {
+      break;  // remainder belongs to rclcpp::init
     } else {
       std::cerr << "Unknown option: " << arg << '\n';
       print_usage(argv[0]);
