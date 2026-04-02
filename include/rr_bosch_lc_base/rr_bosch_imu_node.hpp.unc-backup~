@@ -40,29 +40,26 @@ protected:
   using State = RrBoschCommonSensor::State;
 
 public:
-  explicit RrBoschImuNode(const rclcpp::NodeOptions & options)
-  : RrBoschImuNode("rr_bosch_imu_node", "", options)
+  explicit RrBoschImuNode(const rclcpp::NodeOptions& options) : RrBoschImuNode("rr_bosch_imu_node", "", options)
   {
   }
 
-  explicit RrBoschImuNode(
-    const std::string & node_name, const std::string & ns,
-    const rclcpp::NodeOptions & options)
-  : RrBoschCommonSensor(node_name, ns, options)
+  explicit RrBoschImuNode(const std::string& node_name, const std::string& ns, const rclcpp::NodeOptions& options)
+    : RrBoschCommonSensor(node_name, ns, options)
   {
-        // publisher
+    // publisher
     declare_parameter("frame_id", "imu_link");
     declare_parameter("publish_frequency", 20.0);
     declare_parameter("imu_topic", "/imu/data");
 
-        // transport
-    declare_parameter("transport_protocol", "i2c");     // "i2c" or "uart"
+    // transport
+    declare_parameter("transport_protocol", "i2c");  // "i2c" or "uart"
     declare_parameter("device", "/dev/i2c-1");
 
-        // i2c-specific
+    // i2c-specific
     declare_parameter("i2c_address", 0x28);
 
-        // axis mounting
+    // axis mounting
     declare_parameter("axis_remap", static_cast<int>(rr_bno055::RRBNO055_REMAP_X_Y));
     declare_parameter("axis_sign_x", static_cast<int>(rr_bno055::RRBNO055_REMAP_AXIS_NEGATIVE));
     declare_parameter("axis_sign_y", static_cast<int>(rr_bno055::RRBNO055_REMAP_AXIS_POSITIVE));
@@ -72,11 +69,11 @@ public:
 
   virtual ~RrBoschImuNode() = default;
 
-  CallbackReturn on_configure(const State & state) override;
-  CallbackReturn on_activate(const State & state) override;
-  CallbackReturn on_deactivate(const State & state) override;
-  CallbackReturn on_cleanup(const State & state) override;
-  CallbackReturn on_shutdown(const State & state) override;
+  CallbackReturn on_configure(const State& state) override;
+  CallbackReturn on_activate(const State& state) override;
+  CallbackReturn on_deactivate(const State& state) override;
+  CallbackReturn on_cleanup(const State& state) override;
+  CallbackReturn on_shutdown(const State& state) override;
 
   static constexpr int MAX_POLLS = 360;  // 180 seconds at 500 ms/poll
   static constexpr int POLL_INTERVAL_MS = 500;
